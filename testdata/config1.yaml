@@ -1,0 +1,5 @@
+kafka:
+  address: 127.0.0.1:9092
+  version: 2.12.0
+topic:
+user_agent: robot-1
