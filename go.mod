@@ -1,4 +1,4 @@
-module github.com/opensourceways/robot-generic-hook-delivery
+module github.com/opensourceways/robot-universal-hook-delivery
 
 go 1.21
 

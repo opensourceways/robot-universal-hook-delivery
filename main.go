@@ -16,147 +16,49 @@ package main
 import (
 	"flag"
 	kafka "github.com/opensourceways/kafka-lib/agent"
+	"github.com/opensourceways/robot-framework-lib/config"
+	"github.com/opensourceways/robot-framework-lib/framework"
 	"github.com/opensourceways/server-common-lib/interrupts"
 	"github.com/opensourceways/server-common-lib/logrusutil"
-	"github.com/opensourceways/server-common-lib/options"
-	"github.com/opensourceways/server-common-lib/secret"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strconv"
 )
 
-const component = "robot-gitcode-hook-delivery"
-
-type robotOptions struct {
-	service           options.ServiceOptions
-	enableDebug       bool
-	hmacSecretFile    string
-	delHmacSecretFile bool
-	handlePath        string
-	shutdown          bool
-}
-
-func (o *robotOptions) openDebug(fs *flag.FlagSet) func() {
-	fs.BoolVar(
-		&o.enableDebug, "enable-debug", false,
-		"whether to enable debug model.",
-	)
-
-	return func() {
-		if o.enableDebug {
-			logrus.SetLevel(logrus.DebugLevel)
-			logrus.Debug("debug enabled.")
-		}
-	}
-
-}
-
-func (o *robotOptions) loadSecret(fs *flag.FlagSet) func() []byte {
-	fs.StringVar(
-		&o.hmacSecretFile, "hmac-secret-file", "/etc/webhook/hmac",
-		"Path to the file containing the HMAC secret.",
-	)
-	fs.BoolVar(
-		&o.delHmacSecretFile, "del-secret", true,
-		"whether to delete HMAC secret file.",
-	)
-
-	return func() []byte {
-		hmac, err := secret.LoadSingleSecret(o.hmacSecretFile)
-		if err != nil {
-			logrus.Errorf("load hmac, err:%s", err.Error())
-			o.shutdown = true
-		}
-		if o.delHmacSecretFile {
-			if err = os.Remove(o.hmacSecretFile); err != nil {
-				logrus.Errorf("remove hmac, err:%s", err.Error())
-				o.shutdown = true
-			}
-		}
-		return hmac
-	}
-}
-
-func (o *robotOptions) Validate() error {
-	return o.service.Validate()
-}
-
-func (o *robotOptions) gatherOptions(fs *flag.FlagSet, args ...string) (*configuration, []byte) {
-
-	o.service.AddFlags(fs)
-	debug := o.openDebug(fs)
-	hmacFunc := o.loadSecret(fs)
-	fs.StringVar(
-		&o.handlePath, "handle-path", "webhook",
-		"http server handle interface path",
-	)
-
-	_ = fs.Parse(args)
-
-	if err := o.service.Validate(); err != nil {
-		logrus.Errorf("invalid service options, err:%s", err.Error())
-		o.shutdown = true
-		return nil, nil
-	}
-	cfg, err := loadConfig(o.service.ConfigFile)
-	if err != nil {
-		logrus.Errorf("load config, err:%s", err.Error())
-		o.shutdown = true
-		return nil, nil
-	}
-
-	debug()
-	hmac := hmacFunc()
-
-	return &cfg, hmac
-}
+const component = "robot-universal-hook-delivery"
 
 func main() {
 	logrusutil.ComponentInit(component)
-	lgr := logrus.NewEntry(logrus.StandardLogger())
-	os.Args = append(os.Args,
-		"--port=8511",
-		"--config-file=D:\\B\\local\\config-gitcode-hook-delivery.yaml",
-		"--hmac-secret-file=D:\\B\\local\\gitcode-secret",
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
-	) // TODO
-	o := new(robotOptions)
-	cfg, hmac := o.gatherOptions(flag.NewFlagSet(os.Args[0], flag.ExitOnError), os.Args[1:]...)
-	if o.shutdown {
+	opt := new(robotOptions)
+	cfg, hmac := opt.gatherOptions(flag.NewFlagSet(os.Args[0], flag.ExitOnError), os.Args[1:]...)
+	if opt.shutdown {
 		return
 	}
 
+	lgr := logrus.NewEntry(logrus.StandardLogger())
 	// init kafka
 	if err := kafka.Init(&cfg.Kafka, lgr, nil, "", false); err != nil {
 		logrus.Errorf("init kafka, err:%s", err.Error())
 		return
 	}
-	defer kafka.Exit()
 
 	// server
-	d := delivery{
+	handler := &delivery{
 		topic:     cfg.Topic,
 		userAgent: cfg.UserAgent,
 		hmac:      hmac,
 	}
-	defer d.wait()
-
-	run(&d, o)
-}
-
-func run(d *delivery, o *robotOptions) {
-	defer interrupts.WaitForGracefulShutdown()
+	interrupts.OnInterrupt(func() {
+		kafka.Exit()
+		handler.wait()
+	})
 
 	// Return 200 on / for health checks.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
-
 	// For /**-hook, handle a webhook normally.
-	http.Handle("/"+o.handlePath, d)
+	http.Handle("/"+opt.handlePath, handler)
+	httpServer := &http.Server{Addr: ":" + strconv.Itoa(opt.service.Port)}
 
-	httpServer := &http.Server{Addr: ":" + strconv.Itoa(o.service.Port)}
-
-	interrupts.ListenAndServe(httpServer, o.service.GracePeriod)
+	framework.StartupServer(httpServer, opt.service, config.ServerAdditionOptions{})
 }
