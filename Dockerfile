@@ -1,17 +1,21 @@
 FROM openeuler/openeuler:24.03-lts as BUILDER
 RUN dnf update -y && \
     dnf install -y golang && \
-    go env -w GO111MODULE=on && \
-    go env -w GOPROXY=direct,https://proxy.golang.org
+    dnf remove -y openssl glib setuptools idna urllib3 vim
+
+ARG USER
+ARG PASS
+RUN echo "machine github.com login $USER password $PASS" > ~/.netrc
 
 # build binary
 WORKDIR /opt/source
 COPY . .
-RUN go build -a -o robot-universal-hook-dispatcher -buildmode=pie -ldflags "-s -linkmode 'external' -extldflags '- pie,-Wl,-z,now,relro,noexecstack'" .
+RUN go build -a -o robot-universal-hook-dispatcher -buildmode=pie -ldflags "-s -linkmode 'external' -extldflags '-Wl,-z,now'" .
 
 # copy binary config and utils
 FROM openeuler/openeuler:24.03-lts
 RUN dnf -y update && \
+    dnf remove -y openssl glib setuptools idna urllib3 vim && \
     dnf in -y shadow && \
     groupadd -g 1000 robot && \
     useradd -u 1000 -g robot -s /bin/bash -m robot
