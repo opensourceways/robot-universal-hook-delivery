@@ -15,19 +15,18 @@ package main
 
 import (
 	"flag"
-	"github.com/opensourceways/server-common-lib/options"
+	"github.com/opensourceways/robot-framework-lib/config"
 	"github.com/opensourceways/server-common-lib/secret"
 	"github.com/sirupsen/logrus"
 	"os"
 )
 
 type robotOptions struct {
-	service           options.ServiceOptions
+	service           config.ServerExpansionOptions
 	enableDebug       bool
 	delHmacSecretFile bool
 	shutdown          bool
 	hmacSecretFile    string
-	handlePath        string
 }
 
 func (o *robotOptions) openDebug(fs *flag.FlagSet) func() {
@@ -77,17 +76,13 @@ func (o *robotOptions) Validate() error {
 
 func (o *robotOptions) gatherOptions(fs *flag.FlagSet, args ...string) (*configuration, []byte) {
 
-	o.service.AddFlags(fs)
+	o.service.ExpandAddFlags(fs)
 	debug := o.openDebug(fs)
 	hmacFunc := o.loadSecret(fs)
-	fs.StringVar(
-		&o.handlePath, "handle-path", "webhook",
-		"http server handle interface path",
-	)
 
 	_ = fs.Parse(args)
 
-	if err := o.service.Validate(); err != nil {
+	if err := o.service.ExpandValidate(); err != nil {
 		logrus.Errorf("invalid service options, err:%s", err.Error())
 		o.shutdown = true
 		return nil, nil

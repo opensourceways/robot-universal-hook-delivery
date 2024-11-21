@@ -16,7 +16,6 @@ package main
 import (
 	"flag"
 	kafka "github.com/opensourceways/kafka-lib/agent"
-	"github.com/opensourceways/robot-framework-lib/config"
 	"github.com/opensourceways/robot-framework-lib/framework"
 	"github.com/opensourceways/server-common-lib/interrupts"
 	"github.com/opensourceways/server-common-lib/logrusutil"
@@ -57,8 +56,8 @@ func main() {
 	// Return 200 on / for health checks.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
 	// For /**-hook, handle a webhook normally.
-	http.Handle("/"+opt.handlePath, handler)
+	http.Handle("/"+opt.service.HandlePath, handler)
 	httpServer := &http.Server{Addr: ":" + strconv.Itoa(opt.service.Port)}
 
-	framework.StartupServer(httpServer, opt.service, config.ServerAdditionOptions{})
+	framework.StartupServer(httpServer, opt.service)
 }

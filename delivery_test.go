@@ -31,8 +31,8 @@ const (
 	headerEventTypeValue       = "Note Hook"
 	headerEventGUID            = "X-GitCode-Delivery"
 	headerEventGUIDValue       = "gsadiuoady"
-	headerEventToken           = "X-GitCode-Token"
-	headerEventTokenValue      = "1234"
+	headerEventToken           = "X-GitCode-Signature-256"
+	headerEventTokenValue      = "sha256=e723b56a8b51b13d11bbdc02775cd180af20a89ff128f052cc09cf66ab6ca6cf"
 	headerUserAgent            = "User-Agent"
 	headerUserAgentValue       = "git-gitcode-hook"
 	headerContentTypeName      = "Content-Type"
@@ -43,7 +43,7 @@ func TestDelivery(t *testing.T) {
 	d := delivery{
 		topic:     "",
 		userAgent: "gitcode-hook",
-		hmac:      []byte("fgiuagyds"),
+		hmac:      []byte("111111"),
 	}
 
 	w := httptest.NewRecorder()
@@ -61,10 +61,17 @@ func TestDelivery(t *testing.T) {
 		return nil
 	})
 	defer patch.Reset()
-	d.hmac = []byte(headerEventTokenValue)
+	d.hmac = []byte("fgiuagyds")
+	w1 := httptest.NewRecorder()
+	req1, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case1", bytes.NewBufferString("fihoagdshajbolkhasdb"))
+	req1.Header.Set(headerUserAgent, headerUserAgentValue)
+	req1.Header.Set(headerContentTypeName, headerContentTypeJsonValue)
+	req1.Header.Set(headerEventType, headerEventTypeValue)
+	req1.Header.Set(headerEventToken, headerEventTokenValue)
+	req1.Header.Set(headerEventGUID, headerEventGUIDValue)
 	logrus.SetLevel(logrus.DebugLevel)
 	time.Sleep(2 * time.Second)
-	d.ServeHTTP(w, req)
+	d.ServeHTTP(w1, req1)
 	d.wait()
 }
 
@@ -72,11 +79,11 @@ func TestDeliveryError(t *testing.T) {
 	d := delivery{
 		topic:     "",
 		userAgent: "gitcode-hook",
-		hmac:      []byte(headerEventTokenValue),
+		hmac:      []byte("fgiuagyds"),
 	}
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case2", bytes.NewBufferString("981237096471631"))
+	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case2", bytes.NewBufferString("fihoagdshajbolkhasdb"))
 	req.Header.Set(headerUserAgent, headerUserAgentValue)
 	req.Header.Set(headerContentTypeName, headerContentTypeJsonValue)
 	req.Header.Set(headerEventType, headerEventTypeValue)
