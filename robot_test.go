@@ -18,12 +18,12 @@ import (
 	"errors"
 	"github.com/agiledragon/gomonkey/v2"
 	kafka "github.com/opensourceways/kafka-lib/agent"
+	"github.com/opensourceways/robot-framework-lib/framework"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 const (
@@ -32,22 +32,28 @@ const (
 	headerEventGUID            = "X-GitCode-Delivery"
 	headerEventGUIDValue       = "gsadiuoady"
 	headerEventToken           = "X-GitCode-Signature-256"
-	headerEventTokenValue      = "sha256=e723b56a8b51b13d11bbdc02775cd180af20a89ff128f052cc09cf66ab6ca6cf"
+	headerEventTokenValue      = "sha256=ed14c459bd15a2460ae7dedc058ce6624bbb32f5b3266dfa237d9b02b118d7fb"
 	headerUserAgent            = "User-Agent"
 	headerUserAgentValue       = "git-gitcode-hook"
 	headerContentTypeName      = "Content-Type"
 	headerContentTypeJsonValue = "application/json"
+
+	mockRequestBody          = "fihoagdshajbolkhasdb"
+	mockWebHookCorrectSecret = "*****"
+	mockWebHookWrongSecret   = "**************"
+	mockRobotUserAgentValue  = "robot"
 )
 
 func TestDelivery(t *testing.T) {
 	d := delivery{
-		topic:     "",
-		userAgent: "gitcode-hook",
-		hmac:      []byte("111111"),
+		topic:     "t1",
+		userAgent: mockRobotUserAgentValue,
+		hmac:      []byte(mockWebHookWrongSecret),
+		log:       framework.NewLogger().WithField("component", component),
 	}
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case1", bytes.NewBufferString("fihoagdshajbolkhasdb"))
+	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case1", bytes.NewBufferString(mockRequestBody))
 	req.Header.Set(headerUserAgent, headerUserAgentValue)
 	req.Header.Set(headerContentTypeName, headerContentTypeJsonValue)
 	req.Header.Set(headerEventType, headerEventTypeValue)
@@ -61,29 +67,31 @@ func TestDelivery(t *testing.T) {
 		return nil
 	})
 	defer patch.Reset()
-	d.hmac = []byte("fgiuagyds")
+	d.hmac = []byte(mockWebHookCorrectSecret)
 	w1 := httptest.NewRecorder()
-	req1, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case1", bytes.NewBufferString("fihoagdshajbolkhasdb"))
+	req1, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case1", bytes.NewBufferString(mockRequestBody))
 	req1.Header.Set(headerUserAgent, headerUserAgentValue)
 	req1.Header.Set(headerContentTypeName, headerContentTypeJsonValue)
 	req1.Header.Set(headerEventType, headerEventTypeValue)
 	req1.Header.Set(headerEventToken, headerEventTokenValue)
 	req1.Header.Set(headerEventGUID, headerEventGUIDValue)
 	logrus.SetLevel(logrus.DebugLevel)
-	time.Sleep(2 * time.Second)
+
 	d.ServeHTTP(w1, req1)
-	d.wait()
+
+	assert.Equal(t, http.StatusOK, w1.Result().StatusCode)
 }
 
 func TestDeliveryError(t *testing.T) {
 	d := delivery{
-		topic:     "",
-		userAgent: "gitcode-hook",
-		hmac:      []byte("fgiuagyds"),
+		topic:     "t2",
+		userAgent: mockRobotUserAgentValue,
+		hmac:      []byte(mockWebHookCorrectSecret),
+		log:       framework.NewLogger().WithField("component", component),
 	}
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case2", bytes.NewBufferString("fihoagdshajbolkhasdb"))
+	req, _ := http.NewRequest(http.MethodPost, "http://localhost:8080/case2", bytes.NewBufferString(mockRequestBody))
 	req.Header.Set(headerUserAgent, headerUserAgentValue)
 	req.Header.Set(headerContentTypeName, headerContentTypeJsonValue)
 	req.Header.Set(headerEventType, headerEventTypeValue)
@@ -91,12 +99,11 @@ func TestDeliveryError(t *testing.T) {
 	req.Header.Set(headerEventGUID, headerEventGUIDValue)
 
 	patch := gomonkey.ApplyFunc(kafka.Publish, func(topic string, header map[string]string, msg []byte) error {
-		return errors.New("jhgvkdashgvkhfasda")
+		return errors.New("mock kafka error")
 	})
 	defer patch.Reset()
 
 	logrus.SetLevel(logrus.DebugLevel)
-	time.Sleep(2 * time.Second)
 	d.ServeHTTP(w, req)
-	d.wait()
+	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
 }

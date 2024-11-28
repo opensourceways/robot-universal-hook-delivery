@@ -1,7 +1,6 @@
 FROM openeuler/openeuler:24.03-lts as BUILDER
-RUN dnf update -y && \
-    dnf install -y golang && \
-    dnf remove -y openssl glib setuptools idna urllib3 vim
+RUN dnf install -y golang && \
+    dnf -y upgrade-minimal
 
 ARG USER
 ARG PASS
@@ -14,8 +13,7 @@ RUN go build -a -o robot-universal-hook-delivery -buildmode=pie -ldflags "-s -li
 
 # copy binary config and utils
 FROM openeuler/openeuler:24.03-lts
-RUN dnf -y update && \
-    dnf remove -y openssl glib setuptools idna urllib3 vim && \
+RUN dnf -y upgrade-minimal && \
     dnf in -y shadow && \
     groupadd -g 1000 robot && \
     useradd -u 1000 -g robot -s /bin/bash -m robot

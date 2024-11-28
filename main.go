@@ -18,8 +18,6 @@ import (
 	kafka "github.com/opensourceways/kafka-lib/agent"
 	"github.com/opensourceways/robot-framework-lib/framework"
 	"github.com/opensourceways/server-common-lib/interrupts"
-	"github.com/opensourceways/server-common-lib/logrusutil"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strconv"
@@ -28,17 +26,16 @@ import (
 const component = "robot-universal-hook-delivery"
 
 func main() {
-	logrusutil.ComponentInit(component)
 	opt := new(robotOptions)
 	cfg, hmac := opt.gatherOptions(flag.NewFlagSet(os.Args[0], flag.ExitOnError), os.Args[1:]...)
-	if opt.shutdown {
+	if opt.interrupt {
 		return
 	}
 
-	lgr := logrus.NewEntry(logrus.StandardLogger())
+	logger := framework.NewLogger().WithField("component", component)
 	// init kafka
-	if err := kafka.Init(&cfg.Kafka, lgr, nil, "", false); err != nil {
-		logrus.Errorf("init kafka, err:%s", err.Error())
+	if err := kafka.Init(&cfg.Kafka, logger, nil, "", false); err != nil {
+		logger.WithError(err).Fatal("fatal error occurred while initial kafka")
 		return
 	}
 
@@ -47,6 +44,7 @@ func main() {
 		topic:     cfg.Topic,
 		userAgent: cfg.UserAgent,
 		hmac:      hmac,
+		log:       logger,
 	}
 	interrupts.OnInterrupt(func() {
 		kafka.Exit()
@@ -54,7 +52,9 @@ func main() {
 	})
 
 	// Return 200 on / for health checks.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// do nothing
+	})
 	// For /**-hook, handle a webhook normally.
 	http.Handle("/"+opt.service.HandlePath, handler)
 	httpServer := &http.Server{Addr: ":" + strconv.Itoa(opt.service.Port)}

@@ -22,80 +22,74 @@ import (
 )
 
 type robotOptions struct {
-	service           config.ServerExpansionOptions
+	service           config.FrameworkOptions
 	enableDebug       bool
 	delHmacSecretFile bool
-	shutdown          bool
+	interrupt         bool
 	hmacSecretFile    string
-}
-
-func (o *robotOptions) openDebug(fs *flag.FlagSet) func() {
-	fs.BoolVar(
-		&o.enableDebug, "enable-debug", false,
-		"whether to enable debug model.",
-	)
-
-	return func() {
-		if o.enableDebug {
-			logrus.SetLevel(logrus.DebugLevel)
-			logrus.Debug("debug enabled.")
-		}
-	}
-
-}
-
-func (o *robotOptions) loadSecret(fs *flag.FlagSet) func() []byte {
-	fs.StringVar(
-		&o.hmacSecretFile, "hmac-secret-file", "/etc/webhook/hmac",
-		"Path to the file containing the HMAC secret.",
-	)
-	fs.BoolVar(
-		&o.delHmacSecretFile, "del-secret", true,
-		"whether to delete HMAC secret file.",
-	)
-
-	return func() []byte {
-		hmac, err := secret.LoadSingleSecret(o.hmacSecretFile)
-		if err != nil {
-			logrus.Errorf("load hmac, err:%s", err.Error())
-			o.shutdown = true
-		}
-		if o.delHmacSecretFile {
-			if err = os.Remove(o.hmacSecretFile); err != nil {
-				logrus.Errorf("remove hmac, err:%s", err.Error())
-				o.shutdown = true
-			}
-		}
-		return hmac
-	}
 }
 
 func (o *robotOptions) Validate() error {
 	return o.service.Validate()
 }
 
+func (o *robotOptions) addFlags(fs *flag.FlagSet) {
+	o.service.AddFlagsComposite(fs)
+	fs.BoolVar(
+		&o.enableDebug, "enable-debug", false,
+		"whether to enable debug model.",
+	)
+	fs.StringVar(
+		&o.hmacSecretFile, "hmac-secret-file", "",
+		"Path to the file containing the HMAC secret.",
+	)
+	fs.BoolVar(
+		&o.delHmacSecretFile, "del-secret", true,
+		"whether to delete HMAC secret file.",
+	)
+}
+
+// gatherOptions gather the necessary arguments from command line for project startup.
+// It returns the configuration and the token to using for subsequent processes.
 func (o *robotOptions) gatherOptions(fs *flag.FlagSet, args ...string) (*configuration, []byte) {
-
-	o.service.ExpandAddFlags(fs)
-	debug := o.openDebug(fs)
-	hmacFunc := o.loadSecret(fs)
-
+	o.addFlags(fs)
 	_ = fs.Parse(args)
+	cnf, hmacSecret := o.validateFlags()
 
-	if err := o.service.ExpandValidate(); err != nil {
+	return cnf, hmacSecret
+}
+
+func (o *robotOptions) validateFlags() (*configuration, []byte) {
+	if err := o.service.ValidateComposite(); err != nil {
 		logrus.Errorf("invalid service options, err:%s", err.Error())
-		o.shutdown = true
+		o.interrupt = true
 		return nil, nil
 	}
-	cfg, err := loadConfig(o.service.ConfigFile)
+
+	configmap, err := loadConfig(o.service.ConfigFile)
 	if err != nil {
-		logrus.Errorf("load config, err:%s", err.Error())
-		o.shutdown = true
+		logrus.WithError(err).Error("fatal error occurred while loading config")
+		o.interrupt = true
 		return nil, nil
 	}
 
-	debug()
-	hmac := hmacFunc()
+	hmacSecret, err := secret.LoadSingleSecret(o.hmacSecretFile)
+	if err != nil {
+		logrus.WithError(err).Error("fatal error occurred while loading secret")
+		o.interrupt = true
+		return nil, nil
+	}
+	if o.delHmacSecretFile {
+		if err = os.Remove(o.hmacSecretFile); err != nil {
+			logrus.WithError(err).Error("fatal error occurred while deleting token")
+			o.interrupt = true
+			return nil, nil
+		}
+	}
+	if o.enableDebug {
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.Debug("debug enabled.")
+	}
 
-	return &cfg, hmac
+	return &configmap, hmacSecret
 }

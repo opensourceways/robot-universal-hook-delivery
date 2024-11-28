@@ -16,7 +16,7 @@ package main
 import (
 	kafka "github.com/opensourceways/kafka-lib/agent"
 	"github.com/stretchr/testify/assert"
-	"path/filepath"
+	"os"
 	"testing"
 )
 
@@ -31,48 +31,27 @@ func TestLoadConfig(t *testing.T) {
 		UserAgent: "robot-1",
 	}
 
-	absPath, err := filepath.Abs("./testdata/config.yaml")
-	if err != nil {
-		t.Errorf("mismatch data type, 2")
-	}
-
-	got, err := loadConfig(absPath)
+	got, err := loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"))
 	if err != nil {
 		t.Errorf("mismatch data type, %+v", err)
 	}
-
 	assert.Equal(t, want, got)
 
-	absPath, err = filepath.Abs("./testdata/config1.yaml")
-	if err != nil {
-		t.Errorf("mismatch data type, 2")
-	}
-
-	_, err = loadConfig(absPath)
+	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config1.yaml"))
 	if err == nil {
 		t.Errorf("mismatch check")
 	} else {
 		assert.Equal(t, "missing topic", err.Error())
 	}
 
-	absPath, err = filepath.Abs("./testdata/config2.yaml")
-	if err != nil {
-		t.Errorf("mismatch data type, 2")
-	}
-
-	_, err = loadConfig(absPath)
+	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config2.yaml"))
 	if err == nil {
 		t.Errorf("mismatch check")
 	} else {
 		assert.Equal(t, "missing user_agent", err.Error())
 	}
 
-	absPath, err = filepath.Abs("./testdata/config3.yaml")
-	if err != nil {
-		t.Errorf("mismatch data type, 2")
-	}
-
-	_, err = loadConfig(absPath)
+	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config3.yaml"))
 	if err == nil {
 		t.Errorf("mismatch check")
 	} else {
