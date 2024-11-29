@@ -22,4 +22,4 @@ USER robot
 
 COPY --chown=robot --from=BUILDER /opt/source/robot-universal-hook-delivery  /opt/app/robot-universal-hook-delivery
 
-ENTRYPOINT ["/opt/app/robot-universal-hook-delivery", "--hmac-secret-file=/vault/secrets/gitcode-secret", "--enable-debug=true", "--handle-path=gitcode-hook", "--config-file=/vault/secrets/config"]
+ENTRYPOINT /opt/app/robot-universal-hook-dispatcher --port=8888 --hmac-secret-file=/vault/secrets/gitcode-secret --enable-debug=true --handle-path=gitcode-hook --config-file=/vault/secrets/config
