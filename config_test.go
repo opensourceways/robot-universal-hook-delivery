@@ -31,6 +31,8 @@ func TestLoadConfig(t *testing.T) {
 		UserAgent: "robot-1",
 	}
 
+	errorMismatch := "mismatch check"
+
 	got, err := loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"))
 	if err != nil {
 		t.Errorf("mismatch data type, %+v", err)
@@ -39,21 +41,21 @@ func TestLoadConfig(t *testing.T) {
 
 	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config1.yaml"))
 	if err == nil {
-		t.Errorf("mismatch check")
+		t.Errorf(errorMismatch)
 	} else {
 		assert.Equal(t, "missing topic", err.Error())
 	}
 
 	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config2.yaml"))
 	if err == nil {
-		t.Errorf("mismatch check")
+		t.Errorf(errorMismatch)
 	} else {
 		assert.Equal(t, "missing user_agent", err.Error())
 	}
 
 	_, err = loadConfig(findTestdata(t, "testdata"+string(os.PathSeparator)+"config3.yaml"))
 	if err == nil {
-		t.Errorf("mismatch check")
+		t.Errorf(errorMismatch)
 	} else {
 		assert.Equal(t, "invalid mq address", err.Error())
 	}

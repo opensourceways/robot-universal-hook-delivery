@@ -21,16 +21,26 @@ import (
 	"testing"
 )
 
+const (
+	commandPort             = "--port=8511"
+	commandExecFile         = "****"
+	commandConfigFilePrefix = "--config-file="
+	commandSecretFilePrefix = "--hmac-secret-file="
+	commandEnableDebug      = "--enable-debug=true"
+	commandDelSecret        = "--del-secret=false"
+	commandHandlePath       = "--handle-path=gitcode-hook"
+)
+
 func TestGatherOptions(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config4.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config4.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac2"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
@@ -42,13 +52,13 @@ func TestGatherOptions(t *testing.T) {
 func TestGatherOptions1(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac1"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac1"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
@@ -61,13 +71,13 @@ func TestGatherOptions1(t *testing.T) {
 func TestGatherOptions2(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
