@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-func TestServer(t *testing.T) {
+func TestGatherOptions(t *testing.T) {
 
 	args := []string{
 		"***",
@@ -36,10 +36,10 @@ func TestServer(t *testing.T) {
 	o := new(robotOptions)
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 	_, _ = o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, true, o.shutdown)
+	assert.Equal(t, true, o.interrupt)
 }
 
-func TestServer1(t *testing.T) {
+func TestGatherOptions1(t *testing.T) {
 
 	args := []string{
 		"***",
@@ -54,11 +54,11 @@ func TestServer1(t *testing.T) {
 	o := new(robotOptions)
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 	_, _ = o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, true, o.shutdown)
+	assert.Equal(t, true, o.interrupt)
 
 }
 
-func TestServer2(t *testing.T) {
+func TestGatherOptions2(t *testing.T) {
 
 	args := []string{
 		"***",
@@ -74,7 +74,7 @@ func TestServer2(t *testing.T) {
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	cfg, hmac := o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, false, o.shutdown)
+	assert.Equal(t, false, o.interrupt)
 
 	assert.Equal(t, "127.0.0.1:9092", cfg.Kafka.Address)
 	assert.Equal(t, "2.12.0", cfg.Kafka.Version)
