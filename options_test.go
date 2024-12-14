@@ -21,60 +21,70 @@ import (
 	"testing"
 )
 
-func TestServer(t *testing.T) {
+const (
+	commandPort             = "--port=8511"
+	commandExecFile         = "****"
+	commandConfigFilePrefix = "--config-file="
+	commandSecretFilePrefix = "--hmac-secret-file="
+	commandEnableDebug      = "--enable-debug=true"
+	commandDelSecret        = "--del-secret=false"
+	commandHandlePath       = "--handle-path=gitcode-hook"
+)
+
+func TestGatherOptions(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config4.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config4.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac2"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 	_, _ = o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, true, o.shutdown)
+	assert.Equal(t, true, o.interrupt)
 }
 
-func TestServer1(t *testing.T) {
+func TestGatherOptions1(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac1"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac1"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 	_, _ = o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, true, o.shutdown)
+	assert.Equal(t, true, o.interrupt)
 
 }
 
-func TestServer2(t *testing.T) {
+func TestGatherOptions2(t *testing.T) {
 
 	args := []string{
-		"***",
-		"--port=8511",
-		"--config-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
-		"--hmac-secret-file=" + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
-		"--enable-debug=true",
-		"--del-secret=false",
-		"--handle-path=gitcode-hook",
+		commandExecFile,
+		commandPort,
+		commandConfigFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"config.yaml"),
+		commandSecretFilePrefix + findTestdata(t, "testdata"+string(os.PathSeparator)+"hmac"),
+		commandEnableDebug,
+		commandDelSecret,
+		commandHandlePath,
 	}
 
 	o := new(robotOptions)
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	cfg, hmac := o.gatherOptions(fs, args[1:]...)
-	assert.Equal(t, false, o.shutdown)
+	assert.Equal(t, false, o.interrupt)
 
 	assert.Equal(t, "127.0.0.1:9092", cfg.Kafka.Address)
 	assert.Equal(t, "2.12.0", cfg.Kafka.Version)

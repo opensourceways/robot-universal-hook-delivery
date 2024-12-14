@@ -28,6 +28,7 @@ type delivery struct {
 	hmac      []byte
 	topic     string
 	userAgent string
+	log       *logrus.Entry
 }
 
 func (d *delivery) wait() {
@@ -38,37 +39,33 @@ func (d *delivery) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	auth := &client.Authentication{Secret: d.hmac}
 	err, payload, eventType, eventGUID := auth.DoAuthentication(w, r)
 	if err != nil {
-		logrus.Errorf("request authentication occur error: %s", err.Error())
+		d.log.WithError(err).Error("request authenticate failed")
 		return
 	}
 
 	r.Header.Set("User-Agent", d.userAgent)
-	d.publish(payload, &r.Header, eventType, eventGUID)
-}
 
-func (d *delivery) publish(payload *bytes.Buffer, h *http.Header, eventType, eventGUID string) {
-
-	m := (*map[string][]string)(unsafe.Pointer(h))
+	m := (*map[string][]string)(unsafe.Pointer(&r.Header))
 	header := make(map[string]string, len(*m))
-	for k := range *h {
-		header[k] = h.Get(k)
+	for k := range r.Header {
+		header[k] = r.Header.Get(k)
 	}
 
 	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
+	d.publish(payload, &header, eventType, eventGUID)
+}
 
-		l := logrus.WithFields(
-			logrus.Fields{
-				"event-type": eventType,
-				"event-id":   eventGUID,
-			},
-		)
-
-		if err := kafka.Publish(d.topic, header, payload.Bytes()); err != nil {
-			l.Errorf("failed to publish msg, err:%s", err.Error())
-		} else {
-			l.Infof("publish message to topic(%s) successfully", d.topic)
-		}
-	}()
+func (d *delivery) publish(payload *bytes.Buffer, h *map[string]string, eventType, eventGUID string) {
+	defer d.wg.Done()
+	l := d.log.WithFields(
+		logrus.Fields{
+			"event-type": eventType,
+			"event-id":   eventGUID,
+		},
+	)
+	if err := kafka.Publish(d.topic, *h, payload.Bytes()); err != nil {
+		l.WithError(err).Errorf("failed to send the request to the MQ")
+	} else {
+		l.Info("the request is successfully sent to the MQ topic[" + d.topic + "]")
+	}
 }
