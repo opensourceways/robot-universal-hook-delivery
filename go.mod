@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/agiledragon/gomonkey/v2 v2.12.0
 	github.com/opensourceways/kafka-lib v1.0.0
-	github.com/opensourceways/robot-framework-lib v0.2.0
+	github.com/opensourceways/robot-framework-lib v0.2.1
 	github.com/opensourceways/server-common-lib v1.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
@@ -32,7 +32,7 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
-	github.com/opensourceways/go-gitcode v0.1.23-alpha // indirect
+	github.com/opensourceways/go-gitcode v0.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
