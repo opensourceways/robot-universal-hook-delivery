@@ -1,6 +1,4 @@
 FROM openeuler/go:1.23.4-oe2403lts as BUILDER
-RUN dnf install -y golang && \
-    dnf -y upgrade
 
 ARG USER
 ARG PASS
