@@ -1,4 +1,4 @@
-FROM openeuler/openeuler:24.03-lts as BUILDER
+FROM openeuler/go:1.23.4-oe2403lts as BUILDER
 RUN dnf install -y golang && \
     dnf -y upgrade
 
